@@ -1,1 +1,59 @@
-acum exista
+# Stefan CALMAC 324CC - Data Plane for Router
+
+This project represents the complete implementation of a router's dataplane component.  
+The implemented solution meets all the assignment requirements, including:
+
+## Routing Process
+The `main()` function serves as the entry point of the program and manages the main loop for packet reception and processing. A packet is received, its type (ARP or IP) is determined, and specific functions for processing and forwarding are invoked.
+
+## Longest Prefix Matching
+To find the best route, a trie data structure was implemented. The actual lookup function is `lookup_route`, which traverses the trie based on the bits of the destination IP address and determines the route with the longest matching prefix.
+
+## The ARP Protocol
+This component implements the resolution of MAC addresses corresponding to IP addresses.
+
+- When an ARP packet is received, the `handle_arp_request` function checks if the target IP matches the interface; if it does, an ARP reply is sent.
+- The `handle_arp_reply` function updates the ARP cache using `update_arp_cache` and processes queued packets via `process_queued_packets`.
+- In the event that no entry is found in the ARP cache for the next hop, the `arp_lookup` function is called and, if necessary, an ARP request is sent through `send_arp_request`, with the packet being queued using `enqueue_packet`.
+
+## The ICMP Protocol
+This component implements diagnostic and control functionalities:
+
+- ICMP Echo messages are processed using `handle_icmp_msg`, generating a reply by swapping MAC and IP addresses, recalculating the checksum, and sending an ICMP Echo Reply.
+- If a packet's TTL expires, the `handle_ttl_expiration` function creates and sends an ICMP Time Exceeded message.
+- If there is no valid route for the packet's destination, an ICMP Destination Unreachable message is generated via `handle_dest_unreachable`.
+
+## Functions
+
+- **lookup_route**  
+  Traverses the trie containing the routing table to find the route with the longest matching prefix for the destination IP address.
+
+- **arp_lookup**  
+  Searches the ARP cache for an entry corresponding to the specified IP address and, if found, copies the associated MAC address.
+
+- **update_arp_cache**  
+  Updates the ARP cache: if an entry for the specified IP exists, its MAC address is updated; otherwise, a new entry is added.
+
+- **handle_icmp_msg**  
+  Processes ICMP Echo Request packets by constructing and sending an ICMP Echo Reply with the necessary adjustments to the Ethernet, IP, and ICMP headers.
+
+- **handle_ttl_expiration**  
+  Constructs and sends an ICMP Time Exceeded packet when a packet's TTL reaches 0, notifying the source that the packet could not be routed.
+
+- **handle_arp_request**  
+  Receives ARP requests and, if the IP address in the request matches the current interface, generates and sends a corresponding ARP reply.
+
+- **handle_arp_reply**  
+  Processes ARP replies: updates the ARP cache and also processes any packets that were queued pending the resolution of the MAC address.
+
+- **handle_dest_unreachable**  
+  Constructs and sends an ICMP Destination Unreachable packet when there is no valid route for the destination IP of the received packet.
+
+- **process_queued_packets**  
+  Checks the packet queue waiting for ARP resolution and, upon receiving a valid ARP reply, updates the packet headers and sends them to the correct destination.
+
+- **send_arp_request**  
+  Initiates an ARP request to obtain the MAC address corresponding to the target IP, so that dependent packets can later be processed.
+
+- **main**  
+  Initializes the operating environment, reads the routing table from a file, constructs the trie for Longest Prefix Matching, and manages the main loop for receiving/processing packets (including handling ARP and ICMP messages, updating TTL, and recalculating checksums).
